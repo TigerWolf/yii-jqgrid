@@ -86,6 +86,7 @@ var xmlJsonClass = {
 				xml += ind + "<" + name + ">" + "<![CDATA[" + v + "]]>" + "</" + name + ">";
 			}
 			else {
+				if (v === undefined ) { v = ""; }
 				if (v.toString() === "\"\"" || v.toString().length === 0) {
 					xml += ind + "<" + name + ">__EMPTY_STRING_</" + name + ">";
 				} 
@@ -218,43 +219,51 @@ var xmlJsonClass = {
 		}
 		return o;
 	},
-	toJson: function(o, name, ind) {
-		var json = name ? ("\"" + name + "\"") : "";
+	toJson: function(o, name, ind, wellform) {
+		if(wellform === undefined) wellform = true;
+		var json = name ? ("\"" + name + "\"") : "", tab = "\t", newline = "\n";
+		if(!wellform) {
+			tab= ""; newline= "";
+		}
+
 		if (o === "[]") {
 			json += (name ? ":[]" : "[]");
 		}
 		else if (o instanceof Array) {
-			var n, i;
+			var n, i, ar=[];
 			for (i = 0, n = o.length; i < n; i += 1) {
-				o[i] = this.toJson(o[i], "", ind + "\t");
+				ar[i] = this.toJson(o[i], "", ind + tab, wellform);
 			}
-			json += (name ? ":[" : "[") + (o.length > 1 ? ("\n" + ind + "\t" + o.join(",\n" + ind + "\t") + "\n" + ind) : o.join("")) + "]";
+			json += (name ? ":[" : "[") + (ar.length > 1 ? (newline + ind + tab + ar.join(","+newline + ind + tab) + newline + ind) : ar.join("")) + "]";
 		}
 		else if (o === null) {
 			json += (name && ":") + "null";
 		}
 		else if (typeof(o) === "object") {
-			var arr = [];
-			var m;
-			for (m in o) if (o.hasOwnProperty(m)) {
-				arr[arr.length] = this.toJson(o[m], m, ind + "\t");
+			var arr = [], m;
+			for (m in o) {
+				if (o.hasOwnProperty(m)) {
+					arr[arr.length] = this.toJson(o[m], m, ind + tab, wellform);
 			}
-			json += (name ? ":{" : "{") + (arr.length > 1 ? ("\n" + ind + "\t" + arr.join(",\n" + ind + "\t") + "\n" + ind) : arr.join("")) + "}";
+		}
+			json += (name ? ":{" : "{") + (arr.length > 1 ? (newline + ind + tab + arr.join(","+newline + ind + tab) + newline + ind) : arr.join("")) + "}";
 		}
 		else if (typeof(o) === "string") {
+			/*
 			var objRegExp  = /(^-?\d+\.?\d*$)/;
 			var FuncTest = /function/i;
-			o = o.toString();
-			if (objRegExp.test(o) || FuncTest.test(o) || o==="false" || o==="true") {
+			var os = o.toString();
+			if (objRegExp.test(os) || FuncTest.test(os) || os==="false" || os==="true") {
 				// int or float
-				json += (name && ":") + o;
+				json += (name && ":")  + "\"" +os + "\"";
 			} 
 			else {
-				json += (name && ":") + "\"" + o + "\"";
+			*/
+				json += (name && ":") + "\"" + o.replace(/\\/g,'\\\\').replace(/\"/g,'\\"') + "\"";
+			//}
 			}
-		}
 		else {
-			json += (name && ":") + o.toString();
+			json += (name && ":") +  o.toString();
 		}
 		return json;
 	},
